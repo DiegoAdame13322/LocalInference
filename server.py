@@ -11,7 +11,6 @@ import torch, uvicorn, os, subprocess, threading, shutil, time
 # =====================================================
 app = FastAPI(title="AI Chat + Summarization API")
 
-# Allow frontend requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,34 +20,33 @@ app.add_middleware(
 )
 
 # =====================================================
-# Automatic Disk Cleanup (safety for Codespaces)
+# Auto Disk Cleanup (for Codespaces)
 # =====================================================
 def check_disk_space(min_gb=2):
     stat = shutil.disk_usage("/")
     free_gb = stat.free / (1024 ** 3)
     if free_gb < min_gb:
-        print(f"⚠️ Low disk space ({free_gb:.2f} GB). Clearing Hugging Face cache...")
+        print(f"⚠️ Low disk space ({free_gb:.2f} GB). Clearing HuggingFace cache...")
         os.system("rm -rf ~/.cache/huggingface/*")
 
 def background_health_monitor():
     while True:
         check_disk_space()
-        time.sleep(600)  # every 10 minutes
+        time.sleep(600)
 
 threading.Thread(target=background_health_monitor, daemon=True).start()
 
 # =====================================================
-# Load Chat Model (Lightweight Qwen)
+# Load Chat Model (Qwen 1.5-0.5B-Chat)
 # =====================================================
-print("Loading lightweight chat model (Qwen 1.5 0.5B Chat)…")
-chat_model_name = "Qwen/Qwen1.5-0.1B-Chat"
+print("Loading Qwen 1.5-0.5B-Chat...")
+chat_model_name = "Qwen/Qwen1.5-0.5B-Chat"
 chat_tokenizer = AutoTokenizer.from_pretrained(chat_model_name)
 chat_model = AutoModelForCausalLM.from_pretrained(
     chat_model_name,
     torch_dtype=torch.bfloat16,
-    low_cpu_mem_usage=True,
+    device_map="auto",
 ).eval()
-
 
 # =====================================================
 # Load Summarization Model
@@ -61,7 +59,7 @@ summary_pipe = pipeline(
 )
 
 # =====================================================
-# Request Models
+# API Schemas
 # =====================================================
 class ChatRequest(BaseModel):
     message: str
@@ -74,19 +72,16 @@ class SummaryRequest(BaseModel):
     min_length: int = 25
 
 # =====================================================
-# Chat Endpoint (Fixed for Qwen 1.5 Chat)
+# Chat Endpoint
 # =====================================================
 @app.post("/api/chat")
 def chat_generate(req: ChatRequest):
     try:
-        # Proper message template for Qwen 1.5 Chat
         prompt = (
             "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n"
             f"<|im_start|>user\n{req.message}<|im_end|>\n"
             "<|im_start|>assistant\n"
         )
-
-        # Tokenize and run inference
         inputs = chat_tokenizer(prompt, return_tensors="pt").to(chat_model.device)
         outputs = chat_model.generate(
             **inputs,
@@ -97,17 +92,11 @@ def chat_generate(req: ChatRequest):
             eos_token_id=chat_tokenizer.eos_token_id,
             pad_token_id=chat_tokenizer.eos_token_id,
         )
-
-        # Decode only newly generated tokens
         new_tokens = outputs[0][inputs["input_ids"].size(1):]
         reply = chat_tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
-
-        # Fallback in case of empty output
         if not reply:
             reply = chat_tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
-
         return {"success": True, "response": reply}
-
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -129,11 +118,11 @@ def summarize_text(req: SummaryRequest):
         return {"success": False, "error": str(e)}
 
 # =====================================================
-# Health + Static Routes
+# Health + Static
 # =====================================================
 @app.get("/api/health")
 def health_check():
-    return {"status": "healthy", "models": ["chat: Qwen-0.5B-Chat", "summarization: DistilBART-6-6"]}
+    return {"status": "healthy", "models": ["Qwen-1.5-0.5B-Chat", "DistilBART-6-6"]}
 
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -145,11 +134,17 @@ def read_root():
     return {"message": "AI Chat & Summarization API running!"}
 
 # =====================================================
-# Run FastAPI Server
+# Run API + Cloudflare Tunnel
 # =====================================================
 if __name__ == "__main__":
-    # Get port from environment variable (Render provides this) or default to 8000
-    port = int(os.environ.get("PORT", 8000))
-    
-    print(f"🚀 Starting FastAPI server on http://0.0.0.0:{port}")
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+
+    def run_api():
+        print("🚀 Starting FastAPI server on http://0.0.0.0:8000")
+        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+    threading.Thread(target=run_api, daemon=True).start()
+
+    # Start Cloudflare tunnel
+    time.sleep(3)
+    print("🌐 Starting Cloudflare Tunnel…")
+    subprocess.run(["cloudflared", "tunnel", "--url", "http://localhost:8000"])
