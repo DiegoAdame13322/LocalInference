@@ -4,7 +4,7 @@ A beautiful web-based AI application featuring **Chat Generation** and **Text Su
 
 ## Features ✨
 
-- 💬 **Chat Generation**: Interactive AI chat using Qwen/Qwen1.5-0.1B-Chat
+- 💬 **Chat Generation**: Interactive AI chat using Qwen/Qwen1.5-0.5B-Chat
 - 📝 **Text Summarization**: Summarize long texts using DistilBART model
 - 🎨 **Beautiful UI**: Modern gradient design with smooth animations
 - 🌐 **Accessible**: Publicly deployable and accessible to everyone
@@ -12,7 +12,7 @@ A beautiful web-based AI application featuring **Chat Generation** and **Text Su
 
 ## Models Used
 
-- **Chat**: `Qwen/Qwen1.5-0.1B-Chat` - Lightweight conversational AI
+- **Chat**: `Qwen/Qwen1.5-0.5B-Chat` - Lightweight conversational AI
 - **Summarization**: `sshleifer/distilbart-cnn-6-6` - Efficient text summarization
 
 ## Local Development
