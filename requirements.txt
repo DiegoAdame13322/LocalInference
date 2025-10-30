@@ -4,9 +4,8 @@ uvicorn[standard]==0.32.1
 pydantic==2.10.2
 
 # Transformers and ML
-transformers==4.46.3
-torch==2.5.1
-accelerate==1.1.1
+transformers==4.44.2
+torch==2.3.1
 
 # Tokenizers
 sentencepiece==0.2.0

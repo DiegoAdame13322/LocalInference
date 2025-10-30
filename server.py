@@ -41,13 +41,14 @@ threading.Thread(target=background_health_monitor, daemon=True).start()
 # Load Chat Model (Lightweight Qwen)
 # =====================================================
 print("Loading lightweight chat model (Qwen 1.5 0.5B Chat)…")
-chat_model_name = "Qwen/Qwen1.5-0.5B-Chat"
+chat_model_name = "Qwen/Qwen1.5-0.1B-Chat"
 chat_tokenizer = AutoTokenizer.from_pretrained(chat_model_name)
 chat_model = AutoModelForCausalLM.from_pretrained(
     chat_model_name,
-    dtype=torch.bfloat16,
+    torch_dtype=torch.bfloat16,
     low_cpu_mem_usage=True,
 ).eval()
+
 
 # =====================================================
 # Load Summarization Model
