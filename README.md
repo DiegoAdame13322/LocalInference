@@ -12,7 +12,7 @@ A beautiful web-based AI application featuring **Chat Generation** and **Text Su
 
 ## Models Used
 
-- **Chat**: `Qwen/Qwen1.5-0.5B-Chat` - Lightweight conversational AI
+- **Chat**: `Qwen/Qwen1.5-0.1B-Chat` - Lightweight conversational AI
 - **Summarization**: `sshleifer/distilbart-cnn-6-6` - Efficient text summarization
 
 ## Local Development
