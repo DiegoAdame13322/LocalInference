@@ -1,0 +1,13 @@
+nohup: ignoring input
+Loading chat generation model...
+Device set to use cpu
+Loading summarization model...
+Device set to use cpu
+INFO:     Started server process [27577]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51690 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52708 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48190 - "POST /api/summarize HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50980 - "GET / HTTP/1.1" 200 OK

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat & Summarization</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 900px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+    .header p { font-size: 1.1em; opacity: 0.9; }
+    .tabs {
+      display: flex;
+      background: #f5f5f5;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .tab {
+      flex: 1;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 1.1em;
+      font-weight: 600;
+      transition: all 0.3s;
+      border: none;
+      background: transparent;
+      color: #666;
+    }
+    .tab:hover { background: #e8e8e8; }
+    .tab.active {
+      background: white;
+      color: #667eea;
+      border-bottom: 3px solid #667eea;
+    }
+    .content { padding: 30px; }
+    .tab-content { display: none; animation: fadeIn 0.3s; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .input-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+    textarea, input {
+      width: 100%; padding: 15px; border: 2px solid #e0e0e0;
+      border-radius: 10px; font-size: 1em; font-family: inherit;
+      transition: border-color 0.3s; resize: vertical;
+    }
+    textarea:focus, input:focus { outline: none; border-color: #667eea; }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding: 15px 40px; border: none; border-radius: 10px;
+      font-size: 1.1em; font-weight: 600; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s; width: 100%;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .response-box {
+      margin-top: 20px; padding: 20px; background: #f8f9fa;
+      border-radius: 10px; border-left: 4px solid #667eea;
+      display: none; animation: slideIn 0.3s;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .response-box.show { display: block; }
+    .response-box h3 { margin-bottom: 10px; color: #667eea; }
+    .response-text { color: #333; line-height: 1.6; white-space: pre-wrap; }
+    .error { background: #fee; border-left-color: #f44; }
+    .error h3 { color: #f44; }
+    .loading { text-align: center; padding: 20px; color: #667eea; display: none; }
+    .loading.show { display: block; }
+    .spinner {
+      border: 4px solid #f3f3f3; border-top: 4px solid #667eea;
+      border-radius: 50%; width: 40px; height: 40px;
+      animation: spin 1s linear infinite; margin: 0 auto 10px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg);} 100% {transform: rotate(360deg);} }
+    .chat-history {
+      max-height: 400px; overflow-y: auto; margin-bottom: 20px;
+      padding: 15px; background: #f8f9fa; border-radius: 10px;
+    }
+    .chat-message { margin-bottom: 15px; padding: 10px 15px; border-radius: 10px; }
+    .chat-message.user {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; margin-left: 20%;
+    }
+    .chat-message.assistant {
+      background: white; border: 2px solid #e0e0e0; margin-right: 20%;
+    }
+    .settings {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 15px; margin-bottom: 20px;
+    }
+    .settings .input-group { margin-bottom: 0; }
+    @media (max-width: 600px) {
+      .settings { grid-template-columns: 1fr; }
+      .chat-message.user { margin-left: 10%; }
+      .chat-message.assistant { margin-right: 10%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🤖 AI Assistant</h1>
+      <p>Chat Generation & Text Summarization</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('chat')">💬 Chat Generation</button>
+      <button class="tab" onclick="switchTab('summarize')">📝 Text Summarization</button>
+    </div>
+
+    <div class="content">
+      <!-- Chat Tab -->
+      <div id="chat" class="tab-content active">
+        <div class="chat-history" id="chatHistory"></div>
+        <div class="input-group">
+          <label for="chatMessage">Your Message</label>
+          <textarea id="chatMessage" rows="3" placeholder="Type your message here..."></textarea>
+        </div>
+        <div class="settings">
+          <div class="input-group">
+            <label for="maxTokens">Max Tokens</label>
+            <input type="number" id="maxTokens" value="150" min="50" max="500">
+          </div>
+          <div class="input-group">
+            <label for="temperature">Temperature</label>
+            <input type="number" id="temperature" value="0.7" min="0" max="2" step="0.1">
+          </div>
+        </div>
+        <button class="btn" onclick="sendChat()">Send Message</button>
+        <div class="loading" id="chatLoading">
+          <div class="spinner"></div>
+          <p>Generating response...</p>
+        </div>
+      </div>
+
+      <!-- Summarize Tab -->
+      <div id="summarize" class="tab-content">
+        <div class="input-group">
+          <label for="summaryText">Text to Summarize</label>
+          <textarea id="summaryText" rows="8" placeholder="Paste your text here for summarization..."></textarea>
+        </div>
+
+        <div class="settings">
+          <div class="input-group">
+            <label for="maxLength">Max Length</label>
+            <input type="number" id="maxLength" value="130" min="30" max="300">
+          </div>
+          <div class="input-group">
+            <label for="minLength">Min Length</label>
+            <input type="number" id="minLength" value="30" min="10" max="100">
+          </div>
+        </div>
+
+        <button class="btn" onclick="summarizeText()">Summarize</button>
+
+        <div class="loading" id="summaryLoading">
+          <div class="spinner"></div>
+          <p>Summarizing text...</p>
+        </div>
+
+        <div class="response-box" id="summaryResponse">
+          <h3>Summary</h3>
+          <div class="response-text" id="summaryOutput"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let chatHistory = [];
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    async function sendChat() {
+      const message = document.getElementById('chatMessage').value;
+      const maxTokens = parseInt(document.getElementById('maxTokens').value);
+      const temperature = parseFloat(document.getElementById('temperature').value);
+      if (!message.trim()) { alert('Please enter a message'); return; }
+      addMessageToHistory('user', message);
+      document.getElementById('chatLoading').classList.add('show');
+      document.querySelector('#chat .btn').disabled = true;
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ message, max_new_tokens: maxTokens, temperature })
+        });
+        const data = await res.json();
+        if (data.success) {
+          addMessageToHistory('assistant', data.response);
+          document.getElementById('chatMessage').value = '';
+        } else {
+          addMessageToHistory('assistant', `Error: ${data.error}`);
+        }
+      } catch (err) {
+        addMessageToHistory('assistant', `Error: ${err.message}`);
+      } finally {
+        document.getElementById('chatLoading').classList.remove('show');
+        document.querySelector('#chat .btn').disabled = false;
+      }
+    }
+
+    function addMessageToHistory(role, content) {
+      const history = document.getElementById('chatHistory');
+      const msg = document.createElement('div');
+      msg.className = `chat-message ${role}`;
+      msg.textContent = content;
+      history.appendChild(msg);
+      history.scrollTop = history.scrollHeight;
+    }
+
+    async function summarizeText() {
+      const text = document.getElementById('summaryText').value;
+      const maxLength = parseInt(document.getElementById('maxLength').value);
+      const minLength = parseInt(document.getElementById('minLength').value);
+      if (!text.trim()) { alert('Please enter text to summarize'); return; }
+
+      const summaryLoading = document.getElementById('summaryLoading');
+      const summaryResponse = document.getElementById('summaryResponse');
+      const summaryOutput = document.getElementById('summaryOutput');
+      const summarizeBtn = document.querySelector('#summarize .btn');
+
+      summaryLoading.classList.add('show');
+      summaryResponse.classList.remove('show', 'error');
+      summarizeBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/summarize', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ text, max_length: maxLength, min_length: minLength })
+        });
+        const data = await res.json();
+
+        if (data.success && data.summary && data.summary.trim()) {
+          summaryOutput.textContent = data.summary.trim();
+          summaryResponse.classList.remove('error');
+        } else {
+          summaryOutput.textContent = `Error: ${data.error || 'No summary returned.'}`;
+          summaryResponse.classList.add('error');
+        }
+
+        summaryResponse.classList.add('show');
+      } catch (err) {
+        summaryResponse.classList.add('error', 'show');
+        summaryOutput.textContent = `Error: ${err.message}`;
+      } finally {
+        summaryLoading.classList.remove('show');
+        summarizeBtn.disabled = false;
+      }
+    }
+
+    document.getElementById('chatMessage').addEventListener('keypress', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+    });
+
+    window.onload = () => {
+      addMessageToHistory('assistant', "Hello! I'm your AI assistant. How can I help you today?");
+    };
+  </script>
+</body>
+</html>
